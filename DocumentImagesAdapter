@@ -1,0 +1,167 @@
+package com.example.sonaproject.core.presentation.adapter
+
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import androidx.recyclerview.widget.RecyclerView
+import coil.load
+import com.example.sonaproject.core.data.model.DocumentImage
+import com.example.sonaproject.databinding.ItemAddImageViewBinding
+import com.example.sonaproject.databinding.ItemDocumentImageBinding
+
+class DocumentImagesAdapter(
+    private val onImageClick: (DocumentImage.ImageItem) -> Unit,
+    private val onAddButtonClick: () -> Unit
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+    private val items = mutableListOf<DocumentImage>()
+
+    fun submitList(newList: List<DocumentImage>) {
+        items.clear()
+        items.addAll(newList)
+        notifyDataSetChanged()
+    }
+
+    override fun getItemViewType(position: Int): Int {
+        return when (items[position]) {
+            is DocumentImage.ImageItem -> VIEW_TYPE_IMAGE
+            DocumentImage.AddButton -> VIEW_TYPE_ADD_BUTTON
+        }
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        return when (viewType) {
+            VIEW_TYPE_IMAGE -> ImageViewHolder(
+                ItemDocumentImageBinding.inflate(
+                    LayoutInflater.from(parent.context), parent, false
+                )
+            )
+
+            VIEW_TYPE_ADD_BUTTON -> AddButtonViewHolder(
+                ItemAddImageViewBinding.inflate(
+                    LayoutInflater.from(parent.context), parent, false
+                )
+            )
+
+            else -> throw IllegalArgumentException("Invalid view type")
+        }
+    }
+
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        when (holder) {
+            is ImageViewHolder -> holder.bind(items[position] as DocumentImage.ImageItem)
+            is AddButtonViewHolder -> holder.bind()
+        }
+    }
+
+    override fun getItemCount() = items.size
+
+    inner class ImageViewHolder(
+        private val binding: ItemDocumentImageBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
+        init {
+            binding.root.setOnClickListener {
+                val position = absoluteAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    onImageClick(items[position] as DocumentImage.ImageItem)
+                }
+            }
+        }
+
+        fun bind(image: DocumentImage.ImageItem) {
+            binding.apply {
+                val imageSource = when {
+//                    image.imageUrl.isNotEmpty() -> image.imageUrl
+                    image.imagePath.isNotEmpty() -> image.imagePath
+                    else -> null
+                }
+
+                ivSelfie.load(imageSource)
+            }
+        }
+    }
+
+    inner class AddButtonViewHolder(
+        binding: ItemAddImageViewBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
+        init {
+            binding.root.setOnClickListener {
+                onAddButtonClick()
+            }
+        }
+
+        fun bind() {
+
+        }
+    }
+
+    companion object {
+        private const val VIEW_TYPE_IMAGE = 0
+        private const val VIEW_TYPE_ADD_BUTTON = 1
+    }
+}
+
+
+/*
+class DocumentImagesAdapter(
+    private val onImageClick: (DocumentImage) -> Unit
+) : RecyclerView.Adapter<DocumentImagesAdapter.ImageViewHolder>() {
+
+    private val images = mutableListOf<DocumentImage>()
+
+    fun submitList(newList: List<DocumentImage>) {
+        images.clear()
+        images.addAll(newList)
+        notifyDataSetChanged()
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ImageViewHolder {
+        return ImageViewHolder(
+            ItemUploadingImageBinding.inflate(
+                LayoutInflater.from(parent.context), parent, false
+            )
+        )
+    }
+
+    override fun onBindViewHolder(holder: ImageViewHolder, position: Int) {
+        holder.bind(images[position])
+    }
+
+    override fun getItemCount() = images.size
+
+    inner class ImageViewHolder(
+        private val binding: ItemUploadingImageBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
+
+        init {
+            itemView.setOnClickListener {
+                val position = absoluteAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    onImageClick(images[position])
+                }
+            }
+        }
+
+        fun bind(image: DocumentImage) {
+            binding.apply {
+                val imageSource = when {
+                    image.imageUrl.isNotEmpty() -> image.imageUrl
+                    image.imagePath.isNotEmpty() -> image.imagePath
+                    else -> null
+                }
+
+                if (imageSource != null) {
+                    ivSelfieUpload.gone()
+                    ivSelfie.visible()
+                    ivSelfie.load(imageSource)
+                } else {
+                    ivSelfie.gone()
+                    ivSelfieUpload.visible()
+                }
+
+                binding.ivSelfieUpload.setOnClickListener {
+                    onImageClick(image)
+                }
+            }
+        }
+    }
+}*/
