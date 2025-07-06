@@ -1,0 +1,7 @@
+package com.example.sonaproject.core.data.model
+
+data class Document(
+    val id: String,
+    val name: String,
+    val images: List<DocumentImage>
+)
