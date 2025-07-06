@@ -1,0 +1,15 @@
+package com.example.sonaproject.core.data.model
+
+
+sealed class DocumentImage {
+
+    data class ImageItem(
+        val id: String,
+        val imagePath: String = "",
+        val imageUrl: String="",
+        val timestamp: Long = System.currentTimeMillis()
+    ) : DocumentImage()
+
+    object AddButton : DocumentImage()
+
+}
