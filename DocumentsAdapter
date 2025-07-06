@@ -1,0 +1,169 @@
+package com.example.sonaproject.core.presentation.adapter
+
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.sonaproject.core.data.model.Document
+import com.example.sonaproject.core.data.model.DocumentImage
+import com.example.sonaproject.core.utils.HorizontalSpaceItemDecoration
+import com.example.sonaproject.databinding.ItemDocumentsBinding
+
+class DocumentsAdapter(
+    private val onImageClick: (DocumentImage.ImageItem) -> Unit,
+    private val onAddImageClick: (Document) -> Unit,
+    private val onDocumentClick: (Document) -> Unit
+) : RecyclerView.Adapter<DocumentsAdapter.DocumentViewHolder>() {
+
+    private val documents = mutableListOf<Document>()
+    private var maxImagesPerDocument = 5
+
+    fun submitList(newList: List<Document>, maxImages: Int = 5) {
+        maxImagesPerDocument = maxImages
+        documents.clear()
+        documents.addAll(newList.map { doc ->
+            val imagesWithPlaceholder = if (doc.images.size < maxImagesPerDocument) {
+                doc.images + DocumentImage.AddButton
+            } else {
+                doc.images
+            }
+            doc.copy(images = imagesWithPlaceholder)
+        })
+        notifyDataSetChanged()
+    }
+
+    fun addImageToDocument(documentId: String, newImage: DocumentImage.ImageItem) {
+        val docIndex = documents.indexOfFirst { it.id == documentId }
+        if (docIndex != -1) {
+            val document = documents[docIndex]
+            val currentImages = document.images.filterIsInstance<DocumentImage.ImageItem>()
+            val newImages = currentImages + newImage
+
+            documents[docIndex] = document.copy(
+                images = if (newImages.size < maxImagesPerDocument) {
+                    newImages + DocumentImage.AddButton
+                } else {
+                    newImages
+                }
+            )
+            notifyItemChanged(docIndex)
+        }
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DocumentViewHolder {
+        val binding = ItemDocumentsBinding.inflate(
+            LayoutInflater.from(parent.context), parent, false
+        )
+        return DocumentViewHolder(binding)
+    }
+
+    override fun onBindViewHolder(holder: DocumentViewHolder, position: Int) {
+        holder.bind(documents[position])
+    }
+
+    override fun getItemCount() = documents.size
+
+    inner class DocumentViewHolder(
+        private val binding: ItemDocumentsBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
+
+        private val imagesAdapter = DocumentImagesAdapter(
+            onImageClick = { image ->
+                onImageClick(image)
+            },
+            onAddButtonClick = {
+                val position = bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    onAddImageClick(documents[position])
+                }
+            }
+        )
+
+        init {
+            binding.rvImages.apply {
+                layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+                adapter = imagesAdapter
+                addItemDecoration(HorizontalSpaceItemDecoration(16))
+            }
+
+            binding.root.setOnClickListener {
+                val position = bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    val document = documents[position]
+                    notifyItemChanged(position)
+                    onDocumentClick(document)
+                }
+            }
+        }
+
+        fun bind(document: Document) {
+            binding.tvDocumentName.text = document.name
+            imagesAdapter.submitList(document.images)
+        }
+    }
+}
+
+/*
+
+class DocumentsAdapter(
+    private val onImageClick: (DocumentImage) -> Unit,
+    private val onDocumentClick: (Document) -> Unit
+) : RecyclerView.Adapter<DocumentsAdapter.DocumentViewHolder>() {
+
+    private val documents = mutableListOf<Document>()
+
+    fun submitList(newList: List<Document>) {
+        documents.clear()
+        documents.addAll(newList)
+        notifyDataSetChanged()
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DocumentViewHolder {
+        return DocumentViewHolder(
+            ItemDocumentsBinding.inflate(
+                LayoutInflater.from(parent.context), parent, false
+            )
+        )
+    }
+
+    override fun onBindViewHolder(holder: DocumentViewHolder, position: Int) {
+        holder.bind(documents[position])
+    }
+
+    override fun getItemCount() = documents.size
+
+    inner class DocumentViewHolder(
+        private val binding: ItemDocumentsBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
+
+        private val imagesAdapter = DocumentImagesAdapter { image ->
+            onImageClick(image)
+        }
+
+        init {
+            binding.rvImages.apply {
+                layoutManager =
+                    LinearLayoutManager(itemView.context, LinearLayoutManager.HORIZONTAL, false)
+                adapter = imagesAdapter
+                addItemDecoration(HorizontalSpaceItemDecoration(16))
+            }
+
+            itemView.setOnClickListener {
+                val position = bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    val document = documents[position]
+                    notifyItemChanged(position)
+                    onDocumentClick(document)
+                }
+            }
+        }
+
+        fun bind(document: Document) {
+            binding.apply {
+                tvDocumentName.text = document.name
+                imagesAdapter.submitList(document.images)
+            }
+        }
+    }
+}
+*/
