@@ -1,0 +1,263 @@
+package com.example.sonaproject.auth.presentation.screen.signUpB2B
+
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.navigation.navGraphViewModels
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.sonaproject.R
+import com.example.sonaproject.auth.domain.model.UploadImageModel
+import com.example.sonaproject.auth.presentation.adapter.UploadImageAdapter
+import com.example.sonaproject.auth.presentation.viewmodel.AuthViewModel
+import com.example.sonaproject.core.base.BaseFragment
+import com.example.sonaproject.core.data.model.Document
+import com.example.sonaproject.core.data.model.DocumentImage
+import com.example.sonaproject.core.presentation.adapter.DocumentsAdapter
+import com.example.sonaproject.databinding.FragmentB2bRegisterBinding
+import com.example.sonaproject.databinding.FragmentB2bRegisterDocsBinding
+import com.example.sonaproject.imagePicker.RESULT_IMAGE_FILE
+import com.example.sonaproject.imagePicker.RESULT_IMAGE_PATH
+import com.example.sonaproject.imagePicker.ResultImage
+import com.example.sonaproject.imagePicker.picker.CMImagePicker
+import dagger.hilt.android.AndroidEntryPoint
+import java.io.File
+import java.util.UUID
+
+
+@AndroidEntryPoint
+class B2BRegisterDocsFragment : BaseFragment<FragmentB2bRegisterDocsBinding>(
+    FragmentB2bRegisterDocsBinding::inflate
+) {
+
+    private val viewModel: AuthViewModel by navGraphViewModels(R.id.auth_graph)
+
+//    private val uploadImageAdapter by lazy {
+//        UploadImageAdapter(items = items, onAddItem = ::onAddItem)
+//    }
+
+//    private val uploadImageAdapter by lazy {
+//        UploadImageAdapter(items = items, onAddItem = ::onAddItem)
+//    }
+//
+//    private val uploadImageAdapter by lazy {
+//        UploadImageAdapter(items = items, onAddItem = ::onAddItem)
+//    }
+//
+//    private val uploadImageAdapter by lazy {
+//        UploadImageAdapter(items = items, onAddItem = ::onAddItem)
+//    }
+//
+//    private val uploadImageAdapter by lazy {
+//        UploadImageAdapter(items = items, onAddItem = ::onAddItem)
+//    }
+
+    private lateinit var adapter: DocumentsAdapter
+    private var currentDocument: Document? = null
+
+    private var selectedPosition: Int = 0
+    private val maxImagesAllowed: Int = 2
+
+    private val items = mutableListOf<UploadImageModel>().apply {
+        add(UploadImageModel())
+    }
+
+    override fun setupViews() {
+        setupRecyclerView()
+
+//        binding.layoutSelfie.rvImages.apply {
+//            layoutManager = LinearLayoutManager(
+//                requireContext(),
+//                LinearLayoutManager.HORIZONTAL,
+//                false
+//            )
+//            adapter = uploadImageAdapter
+//            setHasFixedSize(true)
+//        }
+//
+//        binding.layoutSelfie.rvImages.apply {
+//            layoutManager = LinearLayoutManager(
+//                requireContext(),
+//                LinearLayoutManager.HORIZONTAL,
+//                false
+//            )
+//            adapter = uploadImageAdapter
+//            setHasFixedSize(true)
+//        }
+    }
+
+    private fun setupRecyclerView() {
+        adapter = DocumentsAdapter(
+            onImageClick = { image ->
+                showImagePreview(image.imageUrl)
+            },
+            onAddImageClick = { document ->
+                currentDocument = document
+                showImageSourceDialog()
+            },
+            onDocumentClick = { document ->
+                // Handle document click if needed
+            }
+        )
+
+        binding.rvDocument.adapter = adapter
+        binding.rvDocument.layoutManager = LinearLayoutManager(requireContext())
+        adapter.submitList(getInitialDocuments())
+    }
+
+    private fun showImageSourceDialog() {
+        CMImagePicker(requireActivity(), resultCallback).apply {
+            allowCrop(true)
+            allowCompress(true)
+            allowGalleryOnly(false)
+            allowCameraOnly(false)
+            start()
+        }
+    }
+
+    private fun showImagePreview(imageUrl: String) {
+        // Implement your image preview logic here
+    }
+
+    private fun getInitialDocuments(): List<Document> {
+        return listOf(
+            Document(
+                id = "1",
+                name = "Aadhaar Card",
+                images = emptyList()
+            ),
+            Document(
+                id = "2",
+                name = "PAN Card",
+                images = emptyList()
+            ),
+            Document(
+                id = "3",
+                name = "Passport",
+                images = emptyList()
+            )
+        )
+    }
+
+    private fun onAddItem(pos: Int) {
+        selectedPosition = pos
+
+        if (canAddMoreImages()) {
+            launchImagePicker()
+        } else {
+            showMaxLimitReached()
+        }
+    }
+
+    private fun canAddMoreImages(): Boolean {
+        return items.count { it.imagePath.isNotEmpty() } < maxImagesAllowed
+    }
+
+    private fun launchImagePicker() {
+
+    }
+
+    private fun handleNewImageSelection(imagePath: String) {
+        try {
+            val imageFile = File(imagePath)
+
+            if (!imageFile.exists()) {
+                showError("Image file not found")
+                return
+            }
+
+            when {
+                items.size <= maxImagesAllowed -> {
+                    if (selectedPosition < items.size) {
+                        items[selectedPosition] = UploadImageModel(imagePath = imagePath)
+                    } else {
+                        items.add(selectedPosition, UploadImageModel(imagePath = imagePath))
+                    }
+
+                    if (items.size > maxImagesAllowed + 1) {
+                        items.removeAt(items.lastIndex)
+                    }
+                }
+            }
+
+//            uploadImageAdapter.notifyDataSetChanged()
+            logImageSize(imageFile)
+
+        } catch (e: Exception) {
+            showError("Error handling image: ${e.localizedMessage}")
+        }
+    }
+
+    private fun logImageSize(imageFile: File) {
+        val sizeInMB = imageFile.length() / (1024.0 * 1024.0)
+        Log.d("ImageUpload", "Image size: ${"%.2f".format(sizeInMB)} MB")
+    }
+
+    private fun showMaxLimitReached() {
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.max_images_limit_reached),
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private fun showError(message: String) {
+        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+        Log.e("ImageUpload", message)
+    }
+
+    private val resultCallback = object : ResultImage {
+        override val result: ActivityResultLauncher<Intent> = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result: ActivityResult ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                val imagePath = result.data?.getStringExtra(RESULT_IMAGE_PATH)
+                val imageFile: File? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    result.data?.getSerializableExtra(
+                        RESULT_IMAGE_FILE, File::class.java
+                    )
+                } else {
+                    result.data?.getSerializableExtra(RESULT_IMAGE_FILE) as File
+                }
+
+                currentDocument?.let { doc ->
+                    val newImage = DocumentImage.ImageItem(
+                        id = UUID.randomUUID().toString(),
+                        imagePath = imagePath ?: ""
+                    )
+                    adapter.addImageToDocument(doc.id, newImage)
+                }
+
+//                handleNewImageSelection(imagePath ?: "")
+
+//                if (!imagePath.isNullOrEmpty()) {
+//                    val profilePath = File(imagePath)
+//
+//                    if (items.size <= maxImagesAllowed) {
+//                        items.add(selectedPosition, UploadImageModel(imagePath = imagePath))
+//
+//                        if (items.size == maxImagesAllowed){
+//                            items.removeAt(selectedPosition+1)
+//                        }
+//
+//                    } /*else {
+//                        items.add(UploadImageModel(imagePath = imagePath))
+//                    }*/
+//                    uploadImageAdapter?.notifyDataSetChanged()
+////                    val sizeInBytes = profilePath?.length();
+////                    //transform in MB
+////                    val sizeInMb = (sizeInBytes ?: 1) / (1024 * 1024)
+////                    Log.e("TAG", " ${profilePath?.length()}: $sizeInMb")
+//                } else {
+////                    callImagePicker()
+//                }
+            }
+        }
+    }
+}
+
